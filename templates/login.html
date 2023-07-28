@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Login - Home Library Management</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f2f2f2;
+        }
+
+        .login-container {
+            width: 400px;
+            padding: 40px;
+            background-color: #fff;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-title {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .login-form {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .login-button:hover {
+            background-color: #0056b3;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .login-link a {
+            color: #007bff;
+        }
+
+        .login-link a:hover {
+            text-decoration: none;
+        }
+
+        .login-message {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .login-error {
+            display: none;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #dc3545;
+            font-weight: bold;
+            background-color: #f8d7da; /* Light red background color for error message */
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <h2 class="login-title">Home Library Management Login</h2>
+        <div class="login-error" id="login-error">
+        </div>
+        <form class="login-form" id="login-form">
+            <div class="form-group">
+                <label for="username">Email:</label>
+                <input type="text" id="username" name="username" oninput="removeErrorMessage('username')" />
+                <div class="error-message" id="username-error"></div>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" oninput="removeErrorMessage('password')" />
+                <div class="error-message" id="password-error"></div>
+            </div>
+            <button class="login-button" type="submit">Log In</button>
+        </form>
+                <p class="login-link">Don't have an account? <a href="/register">Sign Up</a></p>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (event) => {
+            event.preventDefault(); // Prevent the form from submitting
+        
+            // Get the values of the username and password fields
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+        
+            // Get the error message div elements
+            const usernameError = document.getElementById('username-error');
+            const passwordError = document.getElementById('password-error');
+        
+            // Clear previous error messages
+            usernameError.innerHTML = '';
+            passwordError.innerHTML = '';
+        
+            // Validate username and password
+            let isValid = true;
+        
+            if (username.trim() === '') {
+                usernameError.innerHTML = 'Please enter your email.';
+                isValid = false;
+            }
+        
+            if (password.trim() === '') {
+                passwordError.innerHTML = 'Please enter your password.';
+                isValid = false;
+            }
+        
+            if (!isValid) {
+                return; // Stop form submission if there are errors
+            }
+        
+            // Create a FormData object with the username and password
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+        
+            try {
+                const response = await fetch('/', {
+                    method: 'POST',
+                    body: formData,
+                });
+        
+                if (!response.ok) {
+                    const responseData = await response.json();
+                    const errorMessage = responseData.message || 'Login failed. Please try again.';
+                    showLoginError(errorMessage);
+                } else {
+                    const responseData = await response.json();
+                    localStorage.setItem('user_id', responseData.user_id);
+                    // Login was successful, redirect to home page or handle as desired
+                   window.location.href = '/home';
+                }
+            } catch (error) {
+                showLoginError('An error occurred during login. Please try again later.');
+            }
+        });
+        
+        function showLoginError(errorMessage) {
+            const loginError = document.getElementById('login-error');
+            loginError.innerHTML = errorMessage;
+            loginError.style.display = 'block';
+        }
+//
+//         // if login error message is not empty, display it
+//         const loginError = document.getElementById('login-error');
+//        if (loginError.innerHTML.trim() !== '') {
+//            loginError.style.display = 'block';
+//        }
+//
+//        
+//        function Submitform() {
+//            event.preventDefault(); // Prevent the form from submitting
+//
+//            // Get the values of the username and password fields
+//            const username = document.getElementById('username').value;
+//            const password = document.getElementById('password').value;
+//            
+//            // Get the error message div elements
+//            const usernameError = document.getElementById('username-error');
+//            const passwordError = document.getElementById('password-error');
+//
+//            const loginForm = document.querySelector('.login-form');
+//
+//            // Clear previous error messages
+//            usernameError.innerHTML = '';
+//            passwordError.innerHTML = '';
+//            
+//            // Validate username and password
+//            let isValid = true;
+//
+//            if (username.trim() === '') {
+//                usernameError.innerHTML = 'Please enter your username.';
+//                isValid = false;
+//            }
+//
+//            if (password.trim() === '') {
+//                passwordError.innerHTML = 'Please enter your password.';
+//                isValid = false;
+//            }
+//
+//            // Display the login error message
+//            const loginError = document.getElementById('login-error');
+//            if (!isValid) {
+//            } else {
+//                loginError.innerHTML = '';
+//                event.preventDefault(); // Prevent the form from submitting
+//                // Clear the login error message if there are no other errors
+//                // If the form is valid, submit it programmatically
+//                loginForm.submit();
+//            }
+//        }
+//
+        function removeErrorMessage(field) {
+            // Get the error message div element for the specified field
+            const errorElement = document.getElementById(`${field}-error`);
+
+            // Clear the error message when the user starts typing
+            errorElement.innerHTML = '';
+        }
+    </script> 
+</body>
+
+</html>

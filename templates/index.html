@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Home Library Management</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <style>
+        .page-box {
+            margin: 40px 40px;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: "Roboto", sans-serif;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-block: 20px;
+        }
+
+        .search-container {
+            display: flex;
+            justify-content: center;
+        }
+
+        .search-input {
+            position: relative;
+            width: 400px;
+        }
+
+        .search-input input {
+            padding-right: 40px;
+            border-radius: 20px;
+            border: none;
+            height: 40px;
+            font-size: 16px;
+            outline: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .search-input input:focus {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-input .search-icon {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            color: #ccc;
+            transition: color 0.3s ease;
+        }
+
+        .search-input:hover .search-icon {
+            color: #333;
+        }
+
+        .reset-button {
+            margin-left: 5px;
+            border: none;
+            background: none;
+            color: #ccc;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .reset-button:hover {
+            color: #333;
+        }
+
+        .custom-table {
+            width: 100%;
+            /* Expand table to full width */
+            border-collapse: collapse;
+            /* Collapse table borders */
+        }
+
+        .custom-table thead th {
+            background-color: #f2f2f2;
+            /* Header row background color */
+            border: 1px solid #ddd;
+            /* Header row border */
+            padding: 8px;
+            /* Add padding to header cells */
+        }
+
+        .custom-table tbody td {
+            border-top: 1px solid #ddd;
+            /* Body cell top border */
+            border-bottom: none;
+            /* Remove body cell bottom border */
+            padding: 8px;
+            /* Add padding to body cells */
+        }
+
+        .custom-table tbody td:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .custom-table tbody td:nth-child(10),
+        .custom-table tbody td:nth-child(11) {
+            white-space: nowrap;
+        }
+
+
+        .rating-stars {
+            color: gold;
+            white-space: nowrap;
+        }
+
+        
+        .delete-button {
+            margin-left: 5px;
+            border: none;
+            background: none;
+            color: red;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .delete-button:hover {
+            color: darkred;
+        }
+
+        .custom-modal-dialog {
+            max-width: 90%;
+          }
+          
+          .rating {
+            direction: rtl; /* Add this line to reverse the order */
+            display: inline-block;
+            white-space: nowrap;
+        }
+        
+        .rating input {
+            display: none;
+        }
+        
+        .rating label {
+            color: #ddd;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        
+        .rating label:hover,
+        .rating label:hover ~ label {
+            color: orange;
+        }
+        
+        .rating input:checked ~ label,
+        .rating input:checked ~ label ~ label {
+            color: orange;
+        }
+        
+        /* Adjust the width to fit all stars in a single line */
+        .rating .rating-stars {
+            width: auto;
+        }
+
+        .top-bar {
+            background-color: #c7c7c7;
+            color: #000000;
+            padding: 10px;
+            display: flex;
+            justify-content: end;
+
+        }
+
+        .user-info {
+            display:flex;
+            align-items: center;
+        }
+
+        .user-info span {
+            margin-right: 10px;
+        }
+
+        .logout-button {
+            background-color: red;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .logout-button:hover {
+            background-color: darkred;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="top-bar">
+        <div class="user-info">
+            <span id="userName">User : John Doe</span>
+        </div>
+        <button id="logoutButton" class="logout-button">Logout</button>
+    </div>
+    <div class="page-box">
+        <div class="header">
+            <h2>Home Library Management</h2>
+
+            <div class="search-container">
+                <div class="search-input">
+                    <input type="text" name="search" id="searchInput" class="form-control"
+                        placeholder="Search Books by ISBN or by title..." required />
+                    <span class="search-icon"><i class="fas fa-search"></i></span>
+                </div>
+                <button id="searchbutton" type="button" class="btn btn-primary" 
+               >
+                    Add Book
+                </button>
+
+
+                <button type="reset" id="resetButton" class="reset-button">
+                    <i class="fas fa-undo"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- <div class="message">
+            <p>{{ message }}</p>
+        </div> -->
+
+        <table class="table custom-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Authors</th>
+                    <th>Year</th>
+                    <th>Publisher</th>
+                    <th>Language</th>
+                    <th>ISBN</th>
+                    <th>Book Type</th>
+                    <th>Lended</th>
+                    <th>Borrowers</th>
+                    <th>From Date</th>
+                    <th>End Date</th>
+                    <th>Rating</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for book in books %}
+                <tr>
+                    <td>{{ book['Title'] }}</td>
+                    <td>{{ ', '.join(book['Authors']) }}</td>
+                    <td>{{ book['Year'] }}</td>
+                    <td>{{ book['Publisher'] }}</td>
+                    <td>{{ book['Language'] }}</td>
+                    <td>{{ book['ISBN-13'] }}</td>
+                    <td>{{ book['BookType'] }}</td>
+                    <td>{{ 'Yes' if book['CurrentLendStatus'] else 'No' }}</td>
+                    <td>
+                        {{
+                            book['RecentBorrowerName']
+                        }}
+                    </td>
+                    <td>{{ book['StartingDate'] }}</td>
+                    <td>{{ book['EndDate'] }}</td>
+                    <td>
+                        <div class="rating-stars">
+                            {% for i in range(5) %}
+                                {% if i < book['Rating'] %}
+                                    <i class="fas fa-star"></i>
+                                {% else %}
+                                    <i class="far fa-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </td>
+                                       <td class="d-flex flex">
+                        <a href="#" class="btn btn-primary" onclick="openEditModal(`{{ book['ISBN-13'] }}`)">Edit
+                            Details</a>
+                            
+
+                            <button class="btn btn-danger ml-2" onclick="deleteBook(`{{ book['ISBN-13'] }}`)">
+                                Delete
+                            </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+
+    <div id="editModal" class="modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Book Details</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="editForm"
+                    onsubmit="saveChanges(event)"
+                    >
+                        <div class="form-group">
+                            <label for="isbnedit">ISBN</label>
+                            <input type="text" class="form-control" id="isbnedit" name="isbnedit" readonly />
+                        </div>
+                        <div class="form-group">
+                            <label for="bookType">Book Type</label>
+                            <select class="form-control" id="bookType" name="bookType">
+                                <option value="Hard Copy">Hard Copy</option>
+                                <option value="E-book">E-book</option>
+                            </select>
+                        </div>
+                        <div class="form-group lend-status">
+                            <label for="lended">Lended</label><br />
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="lended" id="lendedYes" value="yes" />
+                                <label class="form-check-label" for="lendedYes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="lended" id="lendedNo" value="no" />
+                                <label class="form-check-label" for="lendedNo">No</label>
+                            </div>
+                        </div>
+                        <div class="form-group borrower-info">
+                            <label for="borrowerName">Borrower Name</label>
+                            <input type="text" class="form-control" id="borrowerName" name="borrowerName" />
+                        </div>
+                        <div class="form-group borrower-info">
+                            <label for="borrowInitialDate">Borrow Initial Date</label>
+                            <input type="date" class="form-control" id="borrowInitialDate" name="borrowInitialDate" />
+                        </div>
+                        <div class="form-group borrower-info">
+                            <label for="borrowFinalDate">Borrow Final Date</label>
+                            <input type="date" class="form-control" id="borrowFinalDate" name="borrowFinalDate" />
+                        </div>
+                        <div class="form-group">
+                            <label for="rating">Rating</label>
+                            <input type="number" class="form-control" id="rating" name="rating" min="1" max="5" />
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" type="button"  data-dismiss="modal">Close</button>
+                            <button class="btn btn-primary" type="submit" >Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    
+
+
+<!-- Search Modal -->
+<div class="modal fade" id="searchModal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog custom-modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search Results</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table">
+                    <colgroup>
+                        <col style="width: 15%">
+                        <col style="width: 15%">
+                        <col style="width: 10%">
+                        <col style="width: 12%">
+                        <col style="width: 8%">
+                        <col style="width: 12%">
+                        <col style="width: 8%">
+                        <col style="width: 20%">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Authors</th>
+                            <th>Year</th>
+                            <th>Publisher</th>
+                            <th>Language</th>
+                            <th>ISBN-13</th>
+                            <th>Rating</th>
+                            <th>ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="searchResultsTable"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script>
+
+
+         function deleteBook(ISBN) {
+
+            var deletebook = "/delete-book?isbn=" + encodeURIComponent(ISBN);
+
+            fetch(deletebook,{
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log(data);
+                    if (data.status == 200) {
+
+                        // refresh the page
+                        window.location.reload();
+                        
+
+                    } else if (data.status == 409) {
+                        alert(data.message);
+                    } else {
+                        alert("Something went wrong. Please try again later.");
+                    }
+                })
+                .catch((error) => console.log(error));
+
+         }
+
+
+
+
+        function openEditModal(ISBN) {
+
+            var getbook = "/get-book?isbn=" + encodeURIComponent(ISBN);
+
+            fetch(getbook)
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log(data);
+                    if (data.status == 200) {
+                        $("#editModal").modal("show");
+                        PopulateEditModal(data.book);
+                    } else if (data.status == 409) {
+                        alert(data.message);
+                    } else {
+                        alert("Something went wrong. Please try again later.");
+                    }
+                })
+                .catch((error) => console.log(error));
+
+
+
+        }
+
+
+        function PopulateEditModal(book) {
+            console.log(book);
+            document.getElementById('isbnedit').value = book[5];
+            document.getElementById('bookType').value = book[7] == "N/A" ? "Hard Copy" :  book[7];
+            if (book[8] == 1) {
+              document.getElementById('lendedYes').checked = true;
+            } else {
+              document.getElementById('lendedNo').checked = true;
+            }
+            document.getElementById('borrowerName').value = book[9] == null ? '' : book[9];
+            document.getElementById('borrowInitialDate').value = book[10] == null ? '' : book[10];
+            document.getElementById('borrowFinalDate').value = book[11] == null ? '' : book[11];
+            document.getElementById('rating').value = book[6] ;
+          }
+       
+
+
+          function saveChanges(event){
+
+            event.preventDefault(); // Prevent form submission
+            var isbn = document.getElementById('isbnedit').value;
+            var bookType = document.getElementById('bookType').value;
+            var lended = document.querySelector('input[name="lended"]:checked').value;
+            var borrowerName = document.getElementById('borrowerName').value;
+            var borrowInitialDate = document.getElementById('borrowInitialDate').value;
+
+            var borrowFinalDate = document.getElementById('borrowFinalDate').value;
+            var rating = document.getElementById('rating').value;
+
+
+            var saveChangesUrl = "/edit-book?isbn=" + encodeURIComponent(isbn) + "&bookType=" + encodeURIComponent(bookType) + "&lended=" + encodeURIComponent(lended) + "&borrowerName=" + encodeURIComponent(borrowerName) + "&borrowInitialDate=" + encodeURIComponent(borrowInitialDate) + "&borrowFinalDate=" + encodeURIComponent(borrowFinalDate) + "&rating=" + encodeURIComponent(rating);
+
+            fetch(saveChangesUrl)
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log(data);
+                    if (data.status == 200) {
+                        // close the modal
+                        $("#editModal").modal("hide");
+                        // populate the table with data.books
+                     //   populateMainTable(data.books);
+                     window.location.reload();
+                    } else if (data.status == 409) {
+                        alert(data.message);
+                    } else {
+                        alert("Something went wrong. Please try again later.");
+                    }
+                })
+                .catch((error) => console.log(error));
+
+
+    // Reset the form or perform any other necessary actions
+    event.target.reset();
+    // Close the modal or perform any other necessary actions
+    $('#editModal').modal('hide');
+  }
+  
+  // Attach the saveChanges function to the form's submit event
+  document.getElementById('editForm').addEventListener('submit', saveChanges);
+
+
+  function populateMainTable(books) {
+    var tableBody = document.querySelector('.custom-table tbody');
+    tableBody.innerHTML = '';
+  
+    books.forEach(function (book) {
+      var row = document.createElement('tr');
+  
+      var titleCell = document.createElement('td');
+      titleCell.textContent = book['Title'];
+      row.appendChild(titleCell);
+  
+      var authorsCell = document.createElement('td');
+      authorsCell.textContent = book['Authors'].join(', ');
+      row.appendChild(authorsCell);
+  
+      var yearCell = document.createElement('td');
+      yearCell.textContent = book['Year'];
+      row.appendChild(yearCell);
+  
+      var publisherCell = document.createElement('td');
+      publisherCell.textContent = book['Publisher'];
+      row.appendChild(publisherCell);
+  
+      var languageCell = document.createElement('td');
+      languageCell.textContent = book['Language'];
+      row.appendChild(languageCell);
+  
+      var isbnCell = document.createElement('td');
+      isbnCell.textContent = book['ISBN-13'];
+      row.appendChild(isbnCell);
+  
+      var bookTypeCell = document.createElement('td');
+      bookTypeCell.textContent = book['BookType'];
+      row.appendChild(bookTypeCell);
+  
+      var lendStatusCell = document.createElement('td');
+      lendStatusCell.textContent = book['CurrentLendStatus'] ? 'Yes' : 'No';
+      row.appendChild(lendStatusCell);
+  
+      var borrowersCell = document.createElement('td');
+      borrowersCell.textContent = book['RecentBorrowerName'];
+      row.appendChild(borrowersCell);
+  
+      var fromDateCell = document.createElement('td');
+      fromDateCell.textContent = book['StartingDate'];
+      row.appendChild(fromDateCell);
+  
+      var endDateCell = document.createElement('td');
+      endDateCell.textContent = book['EndDate'];
+      row.appendChild(endDateCell);
+  
+      var ratingCell = document.createElement('td');
+      ratingCell.textContent = book['Rating'];
+      row.appendChild(ratingCell);
+  
+      var actionsCell = document.createElement('td');
+      var editButton = document.createElement('a');
+      editButton.href = '#';
+      editButton.className = 'btn btn-primary';
+      editButton.textContent = 'Edit Details';
+      editButton.addEventListener('click', function () {
+        openEditModal(book['ISBN']);
+      });
+      actionsCell.appendChild(editButton);
+  
+      row.appendChild(actionsCell);
+  
+      tableBody.appendChild(row);
+    });
+  }
+
+      </script>
+    <script>
+
+        $(document).ready(function() {
+            // Event listener for book type change
+            $('#bookType').change(function() {
+                var selectedBookType = $(this).val();
+                var isEBook = (selectedBookType === 'E-book');
+
+
+        
+                // Disable/enable borrower-related inputs based on book type
+                $('.borrower-info input').prop('disabled', isEBook);
+        
+                // Disable/enable lended radio buttons based on book type
+                $('#lendedYes, #lendedNo').prop('disabled', isEBook);
+            });
+        });
+
+        
+        document.addEventListener("DOMContentLoaded", function () {
+
+            document
+                .getElementById("searchbutton")
+                .addEventListener("click", function (event) {
+                    event.preventDefault(); // Prevent form submission
+                    openSearchModal();
+                });
+
+
+            function openSearchModal() {
+                var searchInput = document.getElementById("searchInput");
+                var searchText = searchInput.value.trim();
+            
+                if (searchText !== "") {
+                    event.preventDefault(); // Prevent form submission
+                    searchBooks();
+                    // open the modal
+                    $("#searchModal").modal("show");            }
+            }
+            
+            function handleKeyPress(event) {
+                if (event.keyCode === 13) {
+                    openSearchModal();
+                }
+            }
+
+            
+            // Trigger the search function when Enter is pressed inside the search input
+
+                        // Submit the form when the Search button is clicked
+                        document
+                        .getElementById("searchInput")
+                        .addEventListener("keydown",handleKeyPress); 
+                        
+        
+
+
+            // Trigger the search function when Enter is pressed inside the search input
+            document
+                .getElementById("resetButton")
+                .addEventListener("click", function (event) {
+                    event.preventDefault(); // Prevent form submission
+                    resetSearch();
+                });
+
+            // Function to perform the search and redirect to the search URL
+            function searchBooks() {
+                var searchQuery = document.getElementById("searchInput").value;
+                var searchUrl = "/?search=" + encodeURIComponent(searchQuery);
+                //   <!-- window.location.href = searchUrl; -->
+                fetch(searchUrl)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        populateSearchResults(data.books);
+                        showSearchModal();
+                    })
+                    .catch((error) => console.log(error));
+            }
+
+            // Function to reset the search and redirect to the home URL
+            function resetSearch() {
+                var resetUrl = "/?reset=1";
+                window.location.href = resetUrl;
+            }
+
+            function populateSearchResults(books) {
+                var searchResultsTable =
+                    document.getElementById("searchResultsTable");
+                searchResultsTable.innerHTML = ""; // Clear previous results
+
+                books.forEach(function (book) {
+                    var row = searchResultsTable.insertRow();
+
+                    var titleCell = row.insertCell();
+                    titleCell.textContent = book.Title;
+
+                    var authorsCell = row.insertCell();
+                    authorsCell.textContent = book.Authors.join(", ");
+
+                    var yearCell = row.insertCell();
+                    yearCell.textContent = book.Year;
+
+                    var publisherCell = row.insertCell();
+                    publisherCell.textContent = book.Publisher;
+
+                    var languageCell = row.insertCell();
+                    languageCell.textContent = book.Language;
+
+                    var isbnCell = row.insertCell();
+                    isbnCell.textContent = book["ISBN-13"];
+
+                    var ratingCell = row.insertCell();
+                    var ratingDiv = document.createElement("div");
+                    ratingDiv.classList.add("rating");
+                    
+                    for (var i = 5; i >= 1; i--) {
+                      var ratingInput = document.createElement("input");
+                      ratingInput.type = "radio";
+                      ratingInput.id = "star" + book["ISBN-13"] + "-" + i; // Unique ID for each radio button
+                      ratingInput.name = "rating-" + book["ISBN-13"]; // Unique name for each radio button
+                      ratingInput.value = i;
+                      
+//                      if (i === 1) {
+  //                      ratingInput.checked = true; // Set the first star as checked by default
+    //                  }
+                      
+                      ratingDiv.appendChild(ratingInput);
+                    
+                      var ratingLabel = document.createElement("label");
+                      ratingLabel.htmlFor = "star" + book["ISBN-13"] + "-" + i; // Corresponding ID for label
+                      ratingLabel.classList.add("fa", "fa-star");
+                      ratingDiv.appendChild(ratingLabel);
+                    }
+                    
+                    ratingCell.appendChild(ratingDiv);
+                         
+                    var actionCell = row.insertCell();
+                    var actionButton = document.createElement("button");
+                    actionButton.textContent = "Add Book";
+                    actionButton.classList.add("btn", "btn-primary");
+
+                    actionButton.addEventListener("click", function () {
+                        var ratingInputs = document.getElementsByName("rating-" + book["ISBN-13"]);
+                        var rating;
+                        for (var i = 0; i < ratingInputs.length; i++) {
+                          if (ratingInputs[i].checked) {
+                            rating = parseInt(ratingInputs[i].value);
+                            break;
+                          }
+                        }
+                        if (!rating) {
+                            // If no rating is selected then change to 1    
+                            rating = 1;
+                        }
+                        addBook(book["ISBN-13"], rating);
+                      });
+
+                    actionCell.appendChild(actionButton);
+                });
+
+
+                
+
+
+                
+            }
+
+
+            function getSelectedRating(isbn) {
+                var ratingInputs = document.querySelectorAll('input[name="rating' + isbn + '"]');
+                for (var i = 0; i < ratingInputs.length; i++) {
+                  if (ratingInputs[i].checked) {
+                    return ratingInputs[i].value;
+                  }
+                }
+                return null;
+              }
+            
+
+
+            // Function to add a book to the library
+            function addBook(isbn,rating) {
+                var addBookUrl = "/add-book?isbn=" + encodeURIComponent(isbn) + "&rating=" + encodeURIComponent(rating);
+                //     return jsonify({'message': message}), 200  # Success status code
+                //             return jsonify({'message': message}), 409  # Conflict status code
+
+                fetch(addBookUrl)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        console.log(data);
+                        if (data.status == 200) {
+                            // close the modal
+                            $("#searchModal").modal("hide");
+                            // populate the table with data.books
+                        //    populateMainTable(data.books);
+                        window.location.reload();
+                        } else if (data.status == 409) {
+                            alert(data.message);
+                        } else {
+                            alert("Something went wrong. Please try again later.");
+                        }
+                    })
+                    .catch((error) => console.log(error));
+            }
+
+            function populateMainTable(books) {
+                var tableBody = document.querySelector('.custom-table tbody');
+                tableBody.innerHTML = '';
+              
+                books.forEach(function (book) {
+                  var row = document.createElement('tr');
+              
+                  var titleCell = document.createElement('td');
+                  titleCell.textContent = book['Title'];
+                  row.appendChild(titleCell);
+              
+                  var authorsCell = document.createElement('td');
+                  authorsCell.textContent = book['Authors'].join(', ');
+                  row.appendChild(authorsCell);
+              
+                  var yearCell = document.createElement('td');
+                  yearCell.textContent = book['Year'];
+                  row.appendChild(yearCell);
+              
+                  var publisherCell = document.createElement('td');
+                  publisherCell.textContent = book['Publisher'];
+                  row.appendChild(publisherCell);
+              
+                  var languageCell = document.createElement('td');
+                  languageCell.textContent = book['Language'];
+                  row.appendChild(languageCell);
+              
+                  var isbnCell = document.createElement('td');
+                  isbnCell.textContent = book['ISBN'];
+                  row.appendChild(isbnCell);
+              
+                  var bookTypeCell = document.createElement('td');
+                  bookTypeCell.textContent = book['BookType'];
+                  row.appendChild(bookTypeCell);
+              
+                  var lendStatusCell = document.createElement('td');
+                  lendStatusCell.textContent = book['CurrentLendStatus'] ? 'Yes' : 'No';
+                  row.appendChild(lendStatusCell);
+              
+                  var borrowersCell = document.createElement('td');
+                  borrowersCell.textContent = book['RecentBorrowerName'];
+                  row.appendChild(borrowersCell);
+              
+                  var fromDateCell = document.createElement('td');
+                  fromDateCell.textContent = book['StartingDate'];
+                  row.appendChild(fromDateCell);
+              
+                  var endDateCell = document.createElement('td');
+                  endDateCell.textContent = book['EndDate'];
+                  row.appendChild(endDateCell);
+              
+                  var ratingCell = document.createElement('td');
+                  ratingCell.textContent = book['Rating'];
+                  row.appendChild(ratingCell);
+              
+                  var actionsCell = document.createElement('td');
+                  var editButton = document.createElement('a');
+                  editButton.href = '#';
+                  editButton.className = 'btn btn-primary';
+                  editButton.textContent = 'Edit Details';
+                  editButton.addEventListener('click', function () {
+                    openEditModal(book['ISBN']);
+                  });
+                  actionsCell.appendChild(editButton);
+              
+                  row.appendChild(actionsCell);
+              
+                  tableBody.appendChild(row);
+                });
+              }
+              
+
+            // Function to show the search modal
+            function showSearchModal() {
+                $("#searchModal").modal("show");
+            }
+        });
+    </script>
+</body>
+
+</html>

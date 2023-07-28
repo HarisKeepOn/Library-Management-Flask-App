@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Register - Home Library Management</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f2f2f2;
+        }
+
+        .register-container {
+            width: 400px;
+            padding: 40px;
+            background-color: #fff;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .register-title {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .register-form {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .password-strength {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .password-strength span {
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .password-weak {
+            color: red;
+        }
+
+        .password-medium {
+            color: orange;
+        }
+
+        .password-strong {
+            color: green;
+        }
+
+        .register-button {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .register-button:hover {
+            background-color: #0056b3;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .register-link a {
+            color: #007bff;
+        }
+
+        .register-link a:hover {
+            text-decoration: none;
+        }
+
+        .register-error {
+            display: none;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #dc3545;
+            font-weight: bold;
+            background-color: #f8d7da; /* Light red background color for error message */
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .register-success {
+            display: none;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #28a745;
+            font-weight: bold;
+            background-color: #d4edda; /* Light green background color for success message */
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .register-message {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .register-message {
+            display: none;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #dc3545;
+            font-weight: bold;
+            background-color: #f8d7da; /* Light red background color for error message */
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="register-container">
+        <h2 class="register-title">Home Library Management Registration</h2>
+        <div class="register-message" id="register-message">
+        </div>
+        <form class="register-form" id="register-form">
+            <div class="form-group">
+                <label for="fullname">Full Name:</label>
+                <input type="text" id="fullname" name="fullname" oninput="removeErrorMessage('fullname')" />
+                <div class="error-message" id="fullname-error"></div>
+            </div>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" oninput="removeErrorMessage('email')" />
+                <div class="error-message" id="email-error"></div>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" oninput="checkPasswordStrength()" />
+                <div id="passwordStrength" class="password-strength"></div>
+                <div class="error-message" id="password-error"></div>
+            </div>
+            <div class="form-group">
+                <label for="retypepassword">Retype Password:</label>
+                <input type="password" id="retypepassword" name="retypepassword" 
+                oninput="removeErrorMessage('retypepassword')"
+                />
+                <div class="error-message" id="retypepassword-error"></div>
+            </div>
+            <button class="register-button" type="submit">Register</button>
+        </form>
+        <p class="register-link">Already have an account? <a href="/">Log In</a></p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const registerForm = document.getElementById('register-form');
+            const registerError = document.getElementById('register-error');
+
+            registerForm.addEventListener('submit', function (event) {
+                event.preventDefault(); // Prevent the default form submission behavior
+
+                // Call the validateForm function to perform client-side validation
+                if (validateForm()) {
+                    const formData = new FormData(registerForm);
+                    const url = '/register'; // Replace with the appropriate URL for the Flask route
+
+                    fetch(url, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Registration successful, redirect to login page or display a success message
+                            registerMessage(data.message, data.status);
+                            // reset the form
+                            registerForm.reset();
+                            // RESET PASSWORD STRENGTH
+                            const passwordStrength = document.getElementById('passwordStrength');
+                            passwordStrength.innerHTML = '';
+
+                        } else if (data.status === 'error') {
+                            // Display the error message returned by the server
+                            registerMessage(data.message, data.status);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // Handle other error cases, if needed
+                        registerMessage('An error occurred. Please try again later.', 'error');                  });
+                
+                }
+            });
+            function validateForm() {
+                var fullname = document.getElementById('fullname').value;
+                var email = document.getElementById('email').value;
+                var password = document.getElementById('password').value;
+                var retypepassword = document.getElementById('retypepassword').value;
+            
+                // Clear any previous error messages
+                clearErrorMessages();
+            // Validate username and password
+            let isValid = true;
+
+            if (fullname.trim() === '') {
+                displayErrorMessage('Please enter your full name.', 'fullname');
+                isValid = false;
+            }
+
+            if (email.trim() === '') {
+                displayErrorMessage('Please enter your email address.', 'email');
+                isValid = false;
+            }else {
+                // Perform email validation
+                var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!email.match(emailRegex)) {
+                    displayErrorMessage('Please enter a valid email address.', 'email');
+                    isValid = false;
+                }else {
+                    isValid = true;
+                }
+            }
+
+            if (password.trim() === '') {
+                displayErrorMessage('Please enter your password.', 'password');
+                isValid = false;
+            } else {
+                // Perform password validation
+                if (password.length < 6) {
+                    displayErrorMessage('Password must be at least 6 characters long.', 'password');
+                    isValid = false;
+                } else {
+                    isValid = true;
+                }
+            }
+
+            if (retypepassword.trim() === '') {
+                displayErrorMessage('Please retype your password.', 'retypepassword');
+                isValid = false;
+            }else {
+                if (password !== retypepassword) {
+                    displayErrorMessage('Passwords do not match.', 'retypepassword');
+                    isValid = false;
+                }else {
+                    isValid = true;
+                }
+            }
+                return isValid;
+            }
+            
+            function displayErrorMessage(message, field) {
+                const errorDiv = document.getElementById(field + '-error');
+                errorDiv.innerHTML = message;
+                errorDiv.style.display = 'block';
+            }
+            
+            function clearErrorMessages() {
+                const errorDivs = document.querySelectorAll('.error-message');
+                errorDivs.forEach((errorDiv) => {
+                    errorDiv.innerHTML = '';
+                    errorDiv.style.display = 'none';
+                });
+            }
+            
+            // ... Your existing code to display flash messages ...
+        });
+
+        function removeErrorMessage(field) {
+            // Get the error message div element for the specified field
+            const errorElement = document.getElementById(`${field}-error`);
+
+            // Clear the error message when the user starts typing
+            errorElement.innerHTML = '';
+        }
+
+        function registerMessage(message, status) {
+            const registerMessage = document.getElementById('register-message');
+            registerMessage.innerHTML = message;
+            registerMessage.style.display = 'block';
+            if (status === 'success') {
+                registerMessage.style.backgroundColor = '#d4edda';
+                registerMessage.style.color = '#28a745';
+            } else if (status === 'error') {
+                registerMessage.style.backgroundColor = '#f8d7da';
+                registerMessage.style.color = '#dc3545';
+            }
+        }
+
+        function checkPasswordStrength() {
+
+
+
+
+            const password = document.getElementById('password').value;
+            removeErrorMessage('password');
+
+
+            if (password.trim() === '') {
+                return;
+            }
+
+            const passwordStrength = document.getElementById('passwordStrength');
+
+            // Perform password validation
+            if (password.length < 8) {
+                passwordStrength.innerHTML = '<span class="password-weak">Weak</span>';
+            } else if (password.length < 12) {
+                passwordStrength.innerHTML = '<span class="password-medium">Medium</span>';
+            } else {
+                passwordStrength.innerHTML = '<span class="password-strong">Strong</span>';
+            }
+        }
+    </script>
+</body>
+</html>
