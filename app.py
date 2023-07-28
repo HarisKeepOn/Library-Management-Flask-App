@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request , redirect, url_for, flash
+from flask import Flask, render_template, request , redirect, url_for, flash , session
 import sqlite3
 import isbnlib
 import hashlib
@@ -8,10 +8,7 @@ import re
 from flask import jsonify
 import logging
 
-
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
-
-# from isbnlib import meta
 
 app = Flask(__name__)
 app.secret_key = "abc"  
@@ -35,6 +32,7 @@ def login():
         
         if user:
             if hashed_password == user[3]:
+                session['user_id'] = user[0]
                 return jsonify({'message': 'Login successful.', 'status': 'success', 'user_id': user[0]}), 200
             else:
                 return jsonify({'message': 'Invalid password.', 'status': 'error'}), 400
@@ -89,7 +87,6 @@ def register():
 def hash_password(password):
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
-
 def create_user_table():
     conn = sqlite3.connect('lms_db.db')
     cursor = conn.cursor()
@@ -101,15 +98,31 @@ def create_user_table():
         "Password TEXT NOT NULL"
         ")"
     )
+    
     conn.close()
-
-
 
 @app.route('/home', methods=['GET', 'POST'])
 def home():
+    print(session)
+    if 'user_id' in session:
+        user_id = session['user_id']
+        
+    else:
+        return jsonify({'message': 'User not logged in.', 'status': 'error'}), 400       
+    
     conn = sqlite3.connect('lms_db.db')
+    cursor = conn.cursor()
     message = "Connected to the database"
- 
+    
+    # get user info from db
+    cursor.execute("SELECT * FROM users WHERE ID = ?", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if user is None:
+        print("User not found.")
+        return jsonify({'message': 'User not found.', 'status': 'error'}), 400
+    
     # Handle search functionality
     search_query = request.args.get('search')
     
@@ -117,8 +130,14 @@ def home():
        search_results = search_book(search_query)
        print(search_results)
        return jsonify({'books': search_results})
+   
+    print(user)
+    return render_template('index.html', books=get_saved_books() , message=message ,userName= user[1])
 
-    return render_template('index.html', books=get_saved_books() , message=message)
+@app.route('/logout',  methods=['GET'])
+def logout():
+    session.pop('user_id', None)
+    return jsonify({'message': 'User not logged in.', 'status': 'error'}), 400
 
 def search_book(query):
     books_by_isbn = isbnlib.goom(query)
@@ -146,13 +165,20 @@ def search_books(query):
         return books_by_title
 
 def get_saved_books():
+    if 'user_id' in session:
+        user_id = session['user_id']
+    else:
+        logout()
+        return None
+    
+    
     conn = sqlite3.connect('lms_db.db')
     cursor = conn.cursor()
     
     is_table_exist_and_if_not_then_create()
 
     # Fetch all the saved books from the 'saved_books' table
-    cursor.execute("SELECT * FROM saved_books")
+    cursor.execute("SELECT * FROM saved_books WHERE UserId = ?", (session['user_id'],))
     saved_books = cursor.fetchall()
     
     books = []
@@ -215,7 +241,19 @@ def is_table_exist_and_if_not_then_create():
         "RecentBorrowerName TEXT,"
         "StartingDate TEXT,"
         "EndDate TEXT,"        
-        "UNIQUE (ISBN)"
+        "UserId INTEGER NOT NULL,"  # New column to store the user ID who saved the book
+        "UNIQUE (ISBN, UserId)"     # Composite key to ensure each user can have multiple saved books with the same ISBN
+        ")"
+    )
+    
+    # Create the 'users_saved_books' table
+    cursor.execute(
+        "CREATE TABLE IF NOT EXISTS users_saved_books ("
+        "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "UserId INTEGER NOT NULL,"
+        "ISBN TEXT NOT NULL,"
+        "FOREIGN KEY (UserId) REFERENCES users (ID),"
+        "FOREIGN KEY (ISBN) REFERENCES saved_books (ISBN)"
         ")"
     )
     
@@ -228,52 +266,28 @@ def is_table_exist_and_if_not_then_create():
         "FOREIGN KEY (BookID) REFERENCES saved_books (ID)"
         ")"
     )
-        
+    
     conn.close()
     
-
 @app.route('/add-book', methods=['GET', 'POST'])
 def add_book():
+    if 'user_id' in session:
+        user_id = session['user_id']
+    else:
+        return jsonify({'message': 'User not logged in.', 'status': 'error'}), 400
     message = "Added to Database"
+    
     conn = sqlite3.connect('lms_db.db')
     cursor = conn.cursor()
-    
-    # Create the 'saved_books' table if it doesn't exist
-    cursor.execute(
-        "CREATE TABLE IF NOT EXISTS saved_books ("
-        "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "Title TEXT NOT NULL,"
-        "Year TEXT,"
-        "Publisher TEXT,"
-        "Language TEXT,"
-        "ISBN TEXT,"
-        "Rating INTEGER DEFAULT 1,"
-        "BookType TEXT DEFAULT 'N/A',"
-        "CurrentLendStatus INTEGER DEFAULT 0,"
-        "RecentBorrowerName TEXT,"
-        "StartingDate TEXT,"
-        "EndDate TEXT,"        
-        "UNIQUE (ISBN)"
-        ")"
-    )
-    
-    # Create the 'authors' table
-    cursor.execute(
-        "CREATE TABLE IF NOT EXISTS authors ("
-        "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "AuthorName TEXT NOT NULL,"
-        "BookID INTEGER NOT NULL,"
-        "FOREIGN KEY (BookID) REFERENCES saved_books (ID)"
-        ")"
-    )
-    
+
+    is_table_exist_and_if_not_then_create()
 
     isbn = request.args.get('isbn')
     rating = request.args.get('rating')
     
     if isbnlib.is_isbn13(isbn) or isbnlib.is_isbn10(isbn):
         # Check if the book with the given ISBN already exists in the 'saved_books' table
-        cursor.execute("SELECT ID FROM saved_books WHERE ISBN = ?", (isbn,))
+        cursor.execute("SELECT ID FROM saved_books WHERE ISBN = ? AND UserId = ?", (isbn, user_id))
         existing_book = cursor.fetchone()
     
         if existing_book:
@@ -295,9 +309,9 @@ def add_book():
            
            # Insert the book into the 'saved_books' table
             cursor.execute(
-                "INSERT INTO saved_books (Title, Year, Publisher, Language, ISBN ,Rating) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (title, year, publisher, language, isbn, Rating)
+                "INSERT INTO saved_books (Title, Year, Publisher, Language, ISBN ,Rating , UserId) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (title, year, publisher, language, isbn, Rating, user_id)
             )
             book_id = cursor.lastrowid
     
@@ -323,42 +337,18 @@ def add_book():
                     'books': get_saved_books()
                     }), 200  # Success status code
 
-
 @app.route('/edit-book', methods=['GET', 'POST'])
 def edit_book():
+    if 'user_id' in session:
+        user_id = session['user_id']
+    else:
+        return jsonify({'message': 'User not logged in.', 'status': 'error'}), 400
+    
     message = "Added to Database"
     conn = sqlite3.connect('lms_db.db')
     cursor = conn.cursor()
     
-    # Create the 'saved_books' table if it doesn't exist
-    cursor.execute(
-        "CREATE TABLE IF NOT EXISTS saved_books ("
-        "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "Title TEXT NOT NULL,"
-        "Year TEXT,"
-        "Publisher TEXT,"
-        "Language TEXT,"
-        "ISBN TEXT,"
-        "Rating INTEGER DEFAULT 1,"
-        "BookType TEXT DEFAULT 'N/A',"
-        "CurrentLendStatus INTEGER DEFAULT 0,"
-        "RecentBorrowerName TEXT,"
-        "StartingDate TEXT,"
-        "EndDate TEXT,"        
-        "UNIQUE (ISBN)"
-        ")"
-    )
-    
-    # Create the 'authors' table
-    cursor.execute(
-        "CREATE TABLE IF NOT EXISTS authors ("
-        "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "AuthorName TEXT NOT NULL,"
-        "BookID INTEGER NOT NULL,"
-        "FOREIGN KEY (BookID) REFERENCES saved_books (ID)"
-        ")"
-    )
-    
+    is_table_exist_and_if_not_then_create()
 
     isbn = request.args.get('isbn')
     bookType = request.args.get('bookType')
@@ -369,7 +359,7 @@ def edit_book():
     rating = request.args.get('rating')
     
     if isbnlib.is_isbn13(isbn) or isbnlib.is_isbn10(isbn):
-        cursor.execute("UPDATE saved_books SET BookType = ?, CurrentLendStatus = ?, RecentBorrowerName = ?, StartingDate = ?, EndDate = ?, Rating = ? WHERE ISBN = ?", (bookType, lended, borrowerName, borrowInitialDate, borrowFinalDate, rating, isbn))
+        cursor.execute("UPDATE saved_books SET BookType = ?, CurrentLendStatus = ?, RecentBorrowerName = ?, StartingDate = ?, EndDate = ?, Rating = ? WHERE ISBN = ? AND UserId = ?", (bookType, lended, borrowerName, borrowInitialDate, borrowFinalDate, rating, isbn, user_id))
         conn.commit()
         
         return jsonify({'message': "Book with ISBN {} has been updated.".format(isbn) , 
@@ -382,48 +372,27 @@ def edit_book():
                         , 'status': 400
                         }), 400
     
-    
 @app.route('/get-book', methods=['GET', 'POST'])
 def get_book():
+    if 'user_id' in session:
+        user_id = session['user_id']
+    else:
+        return jsonify({'message': 'User not logged in.', 'status': 'error'}), 400
+    
+    
+    
     message = "Added to Database"
     conn = sqlite3.connect('lms_db.db')
     cursor = conn.cursor()
     
-    # Create the 'saved_books' table if it doesn't exist
-    cursor.execute(
-        "CREATE TABLE IF NOT EXISTS saved_books ("
-        "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "Title TEXT NOT NULL,"
-        "Year TEXT,"
-        "Publisher TEXT,"
-        "Language TEXT,"
-        "ISBN TEXT,"
-        "Rating INTEGER DEFAULT 1,"
-        "BookType TEXT DEFAULT 'N/A',"
-        "CurrentLendStatus INTEGER DEFAULT 0,"
-        "RecentBorrowerName TEXT,"
-        "StartingDate TEXT,"
-        "EndDate TEXT,"        
-        "UNIQUE (ISBN)"
-        ")"
-    )
-    
-    # Create the 'authors' table
-    cursor.execute(
-        "CREATE TABLE IF NOT EXISTS authors ("
-        "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "AuthorName TEXT NOT NULL,"
-        "BookID INTEGER NOT NULL,"
-        "FOREIGN KEY (BookID) REFERENCES saved_books (ID)"
-        ")"
-    )
+    is_table_exist_and_if_not_then_create()
     
 
     isbn = request.args.get('isbn')
     
     if isbnlib.is_isbn13(isbn) or isbnlib.is_isbn10(isbn):
         # Check if the book with the given ISBN already exists in the 'saved_books' table
-        cursor.execute("SELECT * FROM saved_books WHERE ISBN = ?", (isbn,))
+        cursor.execute("SELECT * FROM saved_books WHERE ISBN = ? AND UserId = ?", (isbn, user_id))
         existing_book = cursor.fetchone()
     
         if existing_book:
@@ -437,11 +406,17 @@ def get_book():
             return jsonify({'message': "Book with ISBN {} does not exist in the database.".format(isbn) ,
                             'status': 400
                             }), 400
-
-
-
+            
 @app.route('/delete-book', methods=['DELETE'])
 def delete_book():
+    if 'user_id' in session:
+        user_id = session['user_id']
+    else:
+        return jsonify({'message': 'User not logged in.', 'status': 'error'}), 400
+    
+    
+    
+    
     conn = sqlite3.connect('lms_db.db')
     cursor = conn.cursor()
     
@@ -449,12 +424,12 @@ def delete_book():
     
     if isbnlib.is_isbn13(isbn) or isbnlib.is_isbn10(isbn):
         # Check if the book with the given ISBN already exists in the 'saved_books' table
-        cursor.execute("SELECT ID FROM saved_books WHERE ISBN = ?", (isbn,))
+        cursor.execute("SELECT ID FROM saved_books WHERE ISBN = ? AND UserId = ?", (isbn, user_id))
         existing_book = cursor.fetchone()
     
         if existing_book:
             # Book with the given ISBN already exists, handle accordingly
-            cursor.execute("DELETE FROM saved_books WHERE ISBN = ?", (isbn,))
+            cursor.execute("DELETE FROM saved_books WHERE ISBN = ? AND UserId = ?", (isbn, user_id))
             conn.commit()
             return jsonify({'message': "Book with ISBN {} has been deleted from the database.".format(isbn) , 
                             'status': 200,
@@ -466,10 +441,6 @@ def delete_book():
                             'status': 400
                             }), 400
     
-
-
-
-
 if __name__ == '__main__':
     app.run(debug=True)
     # Run the app using Waitress server instead of the built-in Flask server

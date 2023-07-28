@@ -203,9 +203,11 @@
 <body>
     <div class="top-bar">
         <div class="user-info">
-            <span id="userName">User : John Doe</span>
+            <span id="userName">User :{{ userName }}</span>
         </div>
-        <button id="logoutButton" class="logout-button">Logout</button>
+        <button id="logoutButton" class="logout-button"
+        onclick="logout()"
+        >Logout</button>
     </div>
     <div class="page-box">
         <div class="header">
@@ -412,6 +414,24 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
     <script>
+
+        function logout(){
+
+            var logout = "/logout";
+
+            fetch(logout,{
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+                .then((response) => {
+                    window.location.href = "/"
+                }
+                )
+                .catch((error) => console.log(error));
+
+        }
 
 
          function deleteBook(ISBN) {
@@ -671,7 +691,7 @@
             // Function to perform the search and redirect to the search URL
             function searchBooks() {
                 var searchQuery = document.getElementById("searchInput").value;
-                var searchUrl = "/?search=" + encodeURIComponent(searchQuery);
+                var searchUrl = "/home?search=" + encodeURIComponent(searchQuery);
                 //   <!-- window.location.href = searchUrl; -->
                 fetch(searchUrl)
                     .then((response) => response.json())
@@ -684,7 +704,7 @@
 
             // Function to reset the search and redirect to the home URL
             function resetSearch() {
-                var resetUrl = "/?reset=1";
+                var resetUrl = "/home?reset=1";
                 window.location.href = resetUrl;
             }
 

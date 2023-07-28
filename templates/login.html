@@ -180,8 +180,6 @@
                     const errorMessage = responseData.message || 'Login failed. Please try again.';
                     showLoginError(errorMessage);
                 } else {
-                    const responseData = await response.json();
-                    localStorage.setItem('user_id', responseData.user_id);
                     // Login was successful, redirect to home page or handle as desired
                    window.location.href = '/home';
                 }
