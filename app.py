@@ -127,10 +127,10 @@ def home():
     search_query = request.args.get('search')
     
     if search_query:
-       search_results = search_book(search_query)
-       print(search_results)
-       return jsonify({'books': search_results})
-   
+        search_results = search_book(search_query)
+        print(search_results)
+        return jsonify({'books': search_results})
+
     print(user)
     return render_template('index.html', books=get_saved_books() , message=message ,userName= user[1])
 
@@ -442,7 +442,7 @@ def delete_book():
                             }), 400
     
 if __name__ == '__main__':
-    app.run(debug=True)
+    # app.run(debug=True)
     # Run the app using Waitress server instead of the built-in Flask server
-    # from waitress import serve
-    # serve(app, host='127.0.0.1', port=5000)
+    from waitress import serve
+    serve(app, host='127.0.0.1', port=5000)
